@@ -44,12 +44,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1) {
         char c = (char)rx_byte;
-        if (c == '\n' || c == '\r') {
+        if (c == '\n' || c == '\r') { // Проверка на конец строки
             if (rx_index > 0) {
                 rx_buffer[rx_index] = '\0';
-                BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-                xQueueSendFromISR(UartRxQueueHandle, rx_buffer, &xHigherPriorityTaskWoken);
-                portYIELD_FROM_ISR(xHigherPriorityTaskWoken); // Отправляем в очередь
+                BaseType_t xHigherPriorityTaskWoken = pdFALSE; // переменная флаг
+                // Отправляем в очередь (функция для прерываний)
+                xQueueSendFromISR(UartRxQueueHandle, rx_buffer, &xHigherPriorityTaskWoken); 
+                portYIELD_FROM_ISR(xHigherPriorityTaskWoken); // если флаг pdTRUE, то сразу переключаемся
                 rx_index = 0; 
             }
         } else {

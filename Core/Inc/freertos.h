@@ -21,23 +21,21 @@
 #define BUTTON_DEBOUNCE_MS      50
 #define RX_TASK_DELAY_MS        1000
 #define STARTUP_DELAY_MS        100
+#define TX_BUFFER_SIZE          64
 
 #define GYRO_QUEUE_LENGTH       10
 #define UART_QUEUE_LENGTH       5
-#define TX_BUFFER_SIZE          64
+#define QUEUE_NO_WAIT           0
 
 #define STACK_SIZE_NORMAL       (256 * 4)
 #define STACK_SIZE_SMALL        (128 * 4)
 
 #define BUTTON_PRESS_FLAG       0x01
-#define QUEUE_NO_WAIT           0
 
-// Хэндлы задач и очередей 
+// Хэндлы 
 extern TaskHandle_t ButtonTaskHandle;
-
 extern QueueHandle_t UartRxQueueHandle;
 extern QueueHandle_t GyroQueueHandle;
-
 extern SemaphoreHandle_t SharedDataMutexHandle;
 
 void FREERTOS_Init(void);

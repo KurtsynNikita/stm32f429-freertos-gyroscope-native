@@ -36,19 +36,20 @@ void LedTask_Entry(void *argument);
 void Gyro_Init(void);
 void Gyro_ReadXYZ(int16_t *x, int16_t *y, int16_t *z);
 
+
 void FREERTOS_Init(void) {
-  // 1. Создание Мьютекса
+  // Создание Мьютекса
   SharedDataMutexHandle = xSemaphoreCreateMutex();
   if (SharedDataMutexHandle == NULL) Error_Handler();
 
-  // 2. Создание Очередей
+  // Создание Очередей
   GyroQueueHandle = xQueueCreate(GYRO_QUEUE_LENGTH, sizeof(GyroData_t));
   if (GyroQueueHandle == NULL) Error_Handler();
 
   UartRxQueueHandle = xQueueCreate(UART_QUEUE_LENGTH, UART_BUFFER_SIZE);
   if (UartRxQueueHandle == NULL) Error_Handler();
 
-  // 3. Создание Задач (xTaskCreate)
+  // Создание Задач (xTaskCreate)
   // Аргументы: функция, имя, размер стека (в словах), параметр, приоритет, хэндл
   xTaskCreate(GyroTask_Entry, "GyroTask", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
   xTaskCreate(UartTxTask_Entry, "UartTx", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
@@ -56,12 +57,13 @@ void FREERTOS_Init(void) {
   xTaskCreate(ValidationTask_Entry, "Valid", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
   xTaskCreate(LedTask_Entry, "Led", 128, NULL, tskIDLE_PRIORITY + 1, NULL);
   
-  // Для кнопки сохраняем хэндл (последний аргумент), чтобы отправлять уведомления
+  // Для кнопки сохраняем хэндл, чтобы отправлять уведомления
   xTaskCreate(ButtonTask_Entry, "Button", 128, NULL, tskIDLE_PRIORITY + 3, &ButtonTaskHandle);
 }
 
 
-// Реализация задач -------------------------
+// ----------------------- Реализация задач ------------------------------
+
 // Чтение данных с гироскопа
 void GyroTask_Entry(void *argument) {
   GyroData_t gyro_data;
@@ -93,7 +95,7 @@ void UartTxTask_Entry(void *argument) {
       
       // xSemaphoreTake берет мьютекс
       xSemaphoreTake(SharedDataMutexHandle, portMAX_DELAY); 
-      uint8_t mode = current_mode; 
+      uint8_t mode = current_mode; // Безопасно читаем данные
       uint32_t period = period_ms;
       xSemaphoreGive(SharedDataMutexHandle); 
       
@@ -119,12 +121,13 @@ void UartRxTask_Entry(void *argument) {
 // Контроль за состоянием кнопки
 void ButtonTask_Entry(void *argument) {
   for(;;) {
-    // ulTaskNotifyTake ожидает уведомление (Task Notification). 
+    // ulTaskNotifyTake ожидает уведомление 
     // pdTRUE означает, что счетчик уведомлений сбрасывается в 0 после пробуждения
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  
     
     vTaskDelay(pdMS_TO_TICKS(BUTTON_DEBOUNCE_MS));  // Антидребезг
     
+    // Смена режима
     if (GpioRead(BUTTON_PORT, BUTTON_PIN) == LOW) {
       xSemaphoreTake(SharedDataMutexHandle, portMAX_DELAY);
       current_mode = (current_mode == MODE_1) ? MODE_2 : MODE_1; 
@@ -143,9 +146,10 @@ void ValidationTask_Entry(void *argument) {
     if (xQueueReceive(UartRxQueueHandle, rx_str, portMAX_DELAY) == pdTRUE) { 
       
       xSemaphoreTake(SharedDataMutexHandle, portMAX_DELAY);
-      uint8_t mode = current_mode; 
+      uint8_t mode = current_mode; // Безопасно читаем режим
       xSemaphoreGive(SharedDataMutexHandle);
       
+      // Валидация данных
       if (mode == MODE_1) {
         char *endptr;
         long value = strtol(rx_str, &endptr, 10);
@@ -164,7 +168,7 @@ void ValidationTask_Entry(void *argument) {
         }
         else {
             xSemaphoreTake(SharedDataMutexHandle, portMAX_DELAY);
-            period_ms = (uint32_t)value;
+            period_ms = (uint32_t)value; // Безопасно меняем период
             xSemaphoreGive(SharedDataMutexHandle);
             
             int len = snprintf(tx_buffer, sizeof(tx_buffer), "Period set: %ld ms\r\n", value);
@@ -181,9 +185,10 @@ void LedTask_Entry(void *argument) {
   
   for(;;) {
     xSemaphoreTake(SharedDataMutexHandle, portMAX_DELAY);
-    uint8_t mode = current_mode; 
+    uint8_t mode = current_mode;  // Безопасно читаем режиим
     xSemaphoreGive(SharedDataMutexHandle);
 
+    // Смена режима
     if (mode != last_mode) {
       if (mode == MODE_1) {
         GpioWrite(LED_RED_PORT, LED_RED_PIN, HIGH);
@@ -199,7 +204,7 @@ void LedTask_Entry(void *argument) {
   }
 }
 
-// Выделение памяти для задачи Idle ----------------
+// Выделение памяти для задачи Idle 
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t  xIdleStack[configMINIMAL_STACK_SIZE];
 
@@ -212,7 +217,7 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
     *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
 }
 
-// Выделение памяти для задачи Timer (если включены таймеры) ---------------
+// Выделение памяти для задачи Timer (если включены таймеры)
 #if (configUSE_TIMERS == 1)
 static StaticTask_t xTimerTaskTCBBuffer;
 static StackType_t  xTimerStack[configTIMER_TASK_STACK_DEPTH];
