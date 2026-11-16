@@ -1,0 +1,25 @@
+# Папки сборки
+build/
+build_cmake/
+
+# Скомпилированные файлы и бинарники
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.axf
+
+# Настройки IDE и редакторов
+.vscode/
+.idea/
+*.uvguix.*
+*.uvoptx
+*.uvprojx
+.mxproject
+
+# Разное
+.DS_Store
+Thumbs.db

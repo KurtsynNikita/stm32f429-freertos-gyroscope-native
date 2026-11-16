@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "arm-debug",
+      "displayName": "ARM Debug",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build_cmake",
+      "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ]
+}
