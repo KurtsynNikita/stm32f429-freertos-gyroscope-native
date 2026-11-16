@@ -36,12 +36,6 @@ void LedTask_Entry(void *argument);
 void Gyro_Init(void);
 void Gyro_ReadXYZ(int16_t *x, int16_t *y, int16_t *z);
 
-extern void GpioWrite(GPIO_TypeDef *port, uint8_t pin, uint8_t value);
-extern uint8_t GpioRead(GPIO_TypeDef *port, uint8_t pin);
-extern UART_HandleTypeDef huart1;
-extern SPI_HandleTypeDef hspi5;
-
-
 void FREERTOS_Init(void) {
   // 1. Создание Мьютекса
   SharedDataMutexHandle = xSemaphoreCreateMutex();
@@ -55,7 +49,7 @@ void FREERTOS_Init(void) {
   if (UartRxQueueHandle == NULL) Error_Handler();
 
   // 3. Создание Задач (xTaskCreate)
-  // Аргументы: функция, имя, размер стека (в словах!), параметр, приоритет, хэндл
+  // Аргументы: функция, имя, размер стека (в словах), параметр, приоритет, хэндл
   xTaskCreate(GyroTask_Entry, "GyroTask", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
   xTaskCreate(UartTxTask_Entry, "UartTx", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
   xTaskCreate(UartRxTask_Entry, "UartRx", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
@@ -66,8 +60,8 @@ void FREERTOS_Init(void) {
   xTaskCreate(ButtonTask_Entry, "Button", 128, NULL, tskIDLE_PRIORITY + 3, &ButtonTaskHandle);
 }
 
-// Реализация задач (Native FreeRTOS API) -------------------------
 
+// Реализация задач -------------------------
 // Чтение данных с гироскопа
 void GyroTask_Entry(void *argument) {
   GyroData_t gyro_data;
@@ -121,8 +115,6 @@ void UartRxTask_Entry(void *argument) {
     vTaskDelay(pdMS_TO_TICKS(RX_TASK_DELAY_MS));
   }
 }
-
-
 
 // Контроль за состоянием кнопки
 void ButtonTask_Entry(void *argument) {
@@ -207,7 +199,7 @@ void LedTask_Entry(void *argument) {
   }
 }
 
-/* --- Выделение памяти для задачи Idle --- */
+// Выделение памяти для задачи Idle ----------------
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t  xIdleStack[configMINIMAL_STACK_SIZE];
 
@@ -220,7 +212,7 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
     *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
 }
 
-/* --- Выделение памяти для задачи Timer (если включены таймеры) --- */
+// Выделение памяти для задачи Timer (если включены таймеры) ---------------
 #if (configUSE_TIMERS == 1)
 static StaticTask_t xTimerTaskTCBBuffer;
 static StackType_t  xTimerStack[configTIMER_TASK_STACK_DEPTH];
